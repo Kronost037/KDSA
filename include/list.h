@@ -28,28 +28,14 @@ typedef enum {
 } Status;
 
 
-typedef struct Node {
-	int val;
-	struct Node* prev;
-	struct Node* next;
-} Node;
-
-typedef struct List {
-	Node *head;
-	Node *tail;
-} List;
-
-typedef struct Queue {
-	List list;
-} Queue; 
-
-typedef struct Stack {
-	List list;
-} Stack; 
+typedef struct Node Node;
+typedef struct List List;
+typedef struct Queue Queue; 
+typedef struct Stack Stack; 
 
 
-void log_error(int line, const char *func_name, const char *file_name);
 void toggle_debug_mode(Debug_Mode mode);
+void log_error(int line, const char *func_name, const char *file_name);
 bool status_err(void);
 Status get_status(void);
 

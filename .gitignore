@@ -1,3 +1,7 @@
-*.o
-*.so
-example1
+/lib/
+/compile_commands.json
+/.cache/
+
+/examples/*
+!/examples/*.*
+!/examples/makefile

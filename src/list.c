@@ -1,5 +1,11 @@
 #include "list.h"
 
+struct Node {
+	int val;
+	struct Node* prev;
+	struct Node* next;
+};
+
 
 inline void log_error(const int line, const char *func_name, const char* file_name){
     fprintf(stderr, "ERR: In %s Line %d: '%s' failed.\n", file_name, line, func_name);
@@ -30,6 +36,10 @@ Status get_status(void){
     return status;
 }
 
+struct List {
+	Node *head;
+	Node *tail;
+};
 
 // Primitive functions for List, Stack, Queue APIs
 static bool is_empty(const List *list){
@@ -220,7 +230,12 @@ bool empty_list(const List *list){
 
 void clear_list(List *list){
     remove_list(list);
-} 
+}
+
+
+struct Queue {
+	List list;
+};
     
 // Queue Functions (Enters at tail and leaves at head)
 
@@ -261,6 +276,10 @@ int (front_queue)(const Queue *line, int LINE){
 void clear_queue(Queue *line){
     remove_list(&line->list);
 }
+
+struct Stack {
+	List list;
+};
 
 // Stack Functions (Enters at head and also leaves at head)
     

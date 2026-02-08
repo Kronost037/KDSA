@@ -1,19 +1,22 @@
 # Compiler and flags
 CC      = gcc
-CFLAGS  = -Wall -Wextra -I ../include
+CFLAGS  = -Wall -Wextra -I ./include
 PICFLAGS = -fPIC      # needed for shared objects
 
 # Linker flags
 LDFLAGS = -shared
 
 # Output
-TARGET_LIB = liblist.so
+TARGET_LIB = ./lib/liblist.so
 
 # Sources and objects
-SRCS = ./list.c
-OBJS = list.o
+SRCS = ./src/list.c
+OBJS = ./lib/list.o
 
-.PHONY: all clean
+.PHONY: setup all clean
+
+setup:
+	bear -- make
 
 all: $(TARGET_LIB)
 
