@@ -4,30 +4,28 @@
 int main(){
     toggle_debug_mode(Debug_On);
 
-    Stack box;
-    init_stack(&box);
+    Queue *box = create_queue(float);
 
-    push_stack(&box, -100);
-    push_stack(&box, 00);
-    push_stack(&box, INT_MIN);
-    push_stack(&box, 101);
-    push_stack(&box, 110);
+    push_queue(box, 10.10f);
+    push_queue(box, 10.5f);
+    float x = front_queue(box, float);
+    pop_queue(box);
 
-    while(!empty_stack(&box)){
-        printf("%d ", top_stack(&box));
-        pop_stack(&box);
-    }
-
-    // Bad usage. Peeking can fail and print garbage value.
-    printf("%d ", top_stack(&box));
-    if(status_err()){
-        printf("Last value is garbage.\n");
-    }
-    // Does nothing. Sets Status and gives err log in debug_mode
-    pop_stack(&box);
-    if(status_err()){
-        printf("Popped nothing.\n");
-    }
+    float y = front_queue(box, float);
+    unsigned int IEEE754  = front_queue(box, unsigned int);
     
+    printf("%f %f %x\n", x, y, IEEE754);
+
+    Stack *s = create_stack(char*);
+
+    push_stack(s, (char*)"HEllo");
+    push_stack(s, (char*)"Hi");
+    push_stack(s, (char*)"Hola");
+
+    while(!empty_stack(s)){
+        printf("%s\n", top_stack(s, char*));
+        pop_stack(s);
+    }
+
     return 0;
 }

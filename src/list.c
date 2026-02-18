@@ -1,11 +1,11 @@
 #include "list.h"
 
-struct Node {
-	int val;
-	struct Node* prev;
-	struct Node* next;
+struct Node_impl {
+    size_t size;
+	Node* prev;
+    Node* next;
+    unsigned char val[];
 };
-
 
 inline void log_error(const int line, const char *func_name, const char* file_name){
     fprintf(stderr, "ERR: In %s Line %d: '%s' failed.\n", file_name, line, func_name);
@@ -36,7 +36,8 @@ Status get_status(void){
     return status;
 }
 
-struct List {
+struct List_impl {
+    size_t size;
 	Node *head;
 	Node *tail;
 };
@@ -44,21 +45,31 @@ struct List {
 // Primitive functions for List, Stack, Queue APIs
 static bool is_empty(const List *list){
     if(list->head == NULL){
-        assert(list->tail == NULL);
+        // An invariant assertion
+        if(list->tail != NULL){
+            fprintf(stderr, "MEMORY CORRUPTION.\n"); // Should not happen.
+            exit(EXIT_FAILURE);
+        }
         return true;
     }
     return false;
 }
 
-static void push_tail(List *list, int val){
+static void push_tail(List *list, void *val, size_t size){
+
+    if(size > list->size){
+        status = status_type_mismatch;
+        return;
+    }
     
-    Node *node = malloc(sizeof (*node));
+    Node *node = malloc(sizeof (*node) + size);
     if(node == NULL){
         status = status_memory_crash;
         return;
     }
-    
-	node->val = val;
+
+    memcpy(node->val, val, size);
+    node->size = size;
 	node->prev = node->next = NULL;
 	
 	if(is_empty(list)){
@@ -74,15 +85,21 @@ static void push_tail(List *list, int val){
     status_clear();
 }
 
-static void push_head(List *list, int val){
+static void push_head(List *list, void *val, size_t size){
+
+    if(size > list->size){
+        status = status_type_mismatch;
+        return;
+    }
     
-	Node *node = malloc(sizeof (*node));
+	Node *node = malloc(sizeof (*node) + size);
     if(node == NULL){
         status = status_memory_crash;
         return;
     }
     
-	node->val = val;
+    memcpy(node->val, val, size);
+    node->size = size;
 	node->prev = node->next = NULL;
 	
 	if(is_empty(list)){
@@ -113,7 +130,7 @@ static void pop_head(List *list){
 	    list->head = list->head->next;
 	    list->head->prev = NULL;
     }
-    
+
     free(tmp);
     status_clear();
     return;
@@ -133,57 +150,79 @@ static void pop_tail(List *list){
 	    list->tail = list->tail->prev;
 	    list->tail->next = NULL;
 	}
-    
+
 	free(tmp);
     status_clear();
 	return;
 }
 
-static int view_head(const List *list){
+static void view_head(const List *list, void *out){
     if(is_empty(list)){
         status = status_illegal_access;
-        return INT_MIN;  // If return is INT_MIN, check status
+        return;
     }
 
+    memcpy(out, list->head->val, list->head->size);
     status_clear();
-    return list->head->val;
 }
 
-static int view_tail(const List *list){
+static void view_tail(const List *list, void *out){
     if(is_empty(list)){
         status = status_illegal_access;
-        return INT_MIN;  // If return is INT_MIN, check status
+        return;
     }
 
+    memcpy(out, list->tail->val, list->tail->size);
     status_clear();
-    return list->tail->val;
 }
 
 // Removing / Clearing list and in extension stack, queue are dependent on pop_head func.
 
-static void remove_list(List *list) {
+static void clear(List *list) {
     while (!is_empty(list)) {
         pop_head(list);
     }
 }
 
-// Linked List
-void init_list(List *list){
+static List *create(size_t size) {
+    List *list = malloc(sizeof(*list));
+    if (!list) {
+        status = status_memory_crash;
+        return NULL;
+    }
+    
     *list = (List){0};
+    list->size = size;
+    status_clear();
+    return list;
 }
 
-void (push_list_head)(List *list, int val, int LINE){
-    push_head(list, val);
 
-    if(status == status_memory_crash && Debug_Switch == Debug_On) {
+// Linked List
+
+List *(create_list)(size_t size, int LINE){
+
+    List *list = create(size);
+
+    if(Debug_Switch == Debug_On && status_err()) {
+        log_error(LINE, __func__, __FILE__);
+    }
+
+    return list;
+}
+
+void (push_list_head)(List *list, void *val, size_t size, int LINE){
+    push_head(list, val, size);
+
+    if(Debug_Switch == Debug_On && status_err()) {
         log_error(LINE, __func__, __FILE__);
     }
 }
 
-void (push_list_tail)(List *list, int val, int LINE){
-    push_tail(list, val);
+void (push_list_tail)(List *list, void *val, size_t size, int LINE){
+    push_tail(list, val, size);
 
-    if(status == status_memory_crash && Debug_Switch == Debug_On) {
+    if(Debug_Switch == Debug_On && status_err()) {
         log_error(LINE, __func__, __FILE__);
     }
 }
@@ -191,7 +230,7 @@ void (push_list_tail)(List *list, int val, int LINE){
 void (pop_list_head)(List *list, int LINE){
     pop_head(list);
 
-    if(status == status_out_of_bounds && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
 }
@@ -199,29 +238,25 @@ void (pop_list_head)(List *list, int LINE){
 void (pop_list_tail)(List *list, int LINE){
     pop_tail(list);
 
-    if(status == status_out_of_bounds && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
 }
 
-int (view_list_head)(const List *list, int LINE){
-    int tmp = view_head(list);
+void (view_list_head)(const List *list, void *out, int LINE){
+    view_head(list, out);
 
-    if(status == status_illegal_access && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
-
-    return tmp;
 }
 
-int (view_list_tail)(const List *list, int LINE){
-    int tmp = view_tail(list);
+void (view_list_tail)(const List *list, void *out, int LINE){
+    view_tail(list, out);
     
-    if(status == status_illegal_access && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
-
-    return tmp;
 }
 
 bool empty_list(const List *list){
@@ -229,94 +264,130 @@ bool empty_list(const List *list){
 }
 
 void clear_list(List *list){
-    remove_list(list);
+    clear(list);
 }
 
 
-struct Queue {
-	List list;
+struct Queue_impl {
+	List *list;
 };
     
 // Queue Functions (Enters at tail and leaves at head)
 
-void init_queue(Queue *line){
-    *line = (Queue){0};
+Queue *(create_queue)(size_t size, int LINE){
+    Queue *line = malloc(sizeof (*line));
+
+    if(line == NULL){
+        status = status_memory_crash;
+        if(Debug_Switch == Debug_On) {
+            log_error(LINE, __func__, __FILE__);
+        }
+        return NULL;
+    }
+    
+    line->list = create(size);
+
+    if(line->list == NULL){
+        if(Debug_Switch == Debug_On) {
+            log_error(LINE, __func__, __FILE__);
+        }
+        free(line);      
+        return NULL;
+    }
+
+    return line;
 }
 
-void (push_queue)(Queue *line, int val, int LINE){
-    push_tail(&(line->list), val);	
+void (push_queue)(Queue *line, void *val, size_t size, int LINE){
+    push_tail(line->list, val, size);	
     
-    if(status == status_memory_crash && Debug_Switch == Debug_On) {
+    if(Debug_Switch == Debug_On && status_err()) {
         log_error(LINE, __func__, __FILE__);
     }
 }
 
 void (pop_queue)(Queue *line, int LINE){
-	pop_head(&(line->list));
+	pop_head(line->list);
     
-    if(status == status_out_of_bounds && Debug_Switch == Debug_On) {
+    if(Debug_Switch == Debug_On && status_err()) {
         log_error(LINE, __func__, __FILE__);
     }
 }
 
 bool empty_queue(const Queue *line){
-    return is_empty(&line->list);
+    return is_empty(line->list);
 }
 
-int (front_queue)(const Queue *line, int LINE){
-    int tmp =  view_head(&line->list);
+void (front_queue)(const Queue *line, void *out, int LINE){
+    view_head(line->list, out);
 
-    if(status == status_illegal_access && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
-
-    return tmp;
 }
 
 void clear_queue(Queue *line){
-    remove_list(&line->list);
+    clear(line->list);
 }
 
-struct Stack {
-	List list;
+struct Stack_impl {
+	List *list;
 };
 
 // Stack Functions (Enters at head and also leaves at head)
+
+Stack *(create_stack)(size_t size, int LINE){
+    Stack *box = malloc(sizeof(*box));
+
+    if (box == NULL) {
+        status = status_memory_crash;
+        if (Debug_Switch == Debug_On){
+            log_error(LINE, __func__, __FILE__);
+        }
+        return NULL;
+    }
+
+    box->list = create(size);
     
-void init_stack(Stack *box){
-    *box = (Stack){0};
+    if(box->list == NULL) {
+        if(Debug_Switch == Debug_On){
+            log_error(LINE, __func__, __FILE__);
+        }
+        free(box);
+        return NULL;
+    }
+    
+    return box;
 }
 
-void (push_stack)(Stack *box, int val, int LINE){
-	push_head(&(box->list), val);	
+void (push_stack)(Stack *box, void *val, size_t size, int LINE){
+	push_head(box->list, val, size);	
 
-    if(status == status_memory_crash && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
 }
 
 void (pop_stack)(Stack *box, int LINE){
-	pop_head(&(box->list));
+	pop_head(box->list);
 
-    if(status == status_out_of_bounds && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
 }
 
 bool empty_stack(const Stack *box){
-    return is_empty(&box->list);
+    return is_empty(box->list);
 }
 
-int (top_stack)(const Stack *box, int LINE){
-    int tmp = view_head(&box->list);
+void (top_stack)(const Stack *box, void *out, int LINE){
+    view_head(box->list, out);
 
-    if(status == status_illegal_access && Debug_Switch == Debug_On){
+    if(Debug_Switch == Debug_On && status_err()){
         log_error(LINE, __func__, __FILE__);
     }
-
-    return tmp;
 }
 
 void clear_stack(Stack *box){
-    remove_list(&box->list);
+    clear(box->list);
 }
