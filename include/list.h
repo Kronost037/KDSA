@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <threads.h>
 
 // Debug_mode toggle 
 typedef enum {
@@ -50,8 +51,10 @@ void (view_list_head)(const List *list, void *out, int LINE);
 void (view_list_tail)(const List *list, void *out, int LINE);
 void (pop_list_head)(List *list, int LINE);
 void (pop_list_tail)(List *list, int LINE);
+size_t size_list(List *list);
 bool empty_list(const List *list);
 void clear_list(List *list);
+void destroy_list(List *list);
 
 // Linked list macros
 #define create_list(type) (create_list)(sizeof (type), __LINE__) 
@@ -67,8 +70,10 @@ Stack *(create_stack)(size_t size, int LINE);
 void (top_stack)(const Stack *box, void *out, int LINE);
 void (push_stack)(Stack *box, void *val, size_t size, int LINE);
 void (pop_stack)(Stack *box, int LINE);
+size_t size_stack(Stack *box);
 bool empty_stack(const Stack *box);
 void clear_stack(Stack *box);
+void destroy_stack(Stack *box);
 
 // stack macros
 #define create_stack(type) (create_stack)(sizeof (type), __LINE__) 
@@ -82,8 +87,10 @@ Queue *(create_queue)(size_t size, int LINE);
 void (push_queue)(Queue *line, void *val, size_t size, int LINE);
 void (front_queue)(const Queue *line, void *out, int LINE);
 void (pop_queue)(Queue *line, int LINE);
+size_t size_queue(Queue *line);
 bool empty_queue(const Queue *line);
 void clear_queue(Queue *line);
+void destroy_queue(Queue *line);
 
 // queue macros
 #define create_queue(type) (create_queue)(sizeof (type), __LINE__) 

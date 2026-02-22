@@ -1,7 +1,8 @@
 #include "list.h"
+#include <stdio.h>
 
 struct Node_impl {
-    size_t size;
+    size_t size; // Type size
 	Node* prev;
     Node* next;
     unsigned char val[];
@@ -37,7 +38,8 @@ Status get_status(void){
 }
 
 struct List_impl {
-    size_t size;
+    size_t length;
+    size_t size;   // Type size
 	Node *head;
 	Node *tail;
 };
@@ -74,14 +76,14 @@ static void push_tail(List *list, void *val, size_t size){
 	
 	if(is_empty(list)){
 		list->head = list->tail = node;
-        status_clear();
-		return;
-	}
-	
-	list->tail->next = node;
-	node->prev = list->tail;
-	list->tail = node;
-
+	} else {
+	    list->tail->next = node;
+	    node->prev = list->tail;
+	    list->tail = node;
+    }
+    
+    list->length++;
+    
     status_clear();
 }
 
@@ -104,14 +106,14 @@ static void push_head(List *list, void *val, size_t size){
 	
 	if(is_empty(list)){
 		list->head = list->tail = node;
-        status_clear();
-		return;
-	}
-	
-	list->head->prev = node;
-	node->next = list->head;
-	list->head = node;
-
+	} else {
+		list->head->prev = node;
+	    node->next = list->head;
+	    list->head = node;
+    }
+    
+    list->length++;
+    
     status_clear();
 }
 
@@ -131,6 +133,7 @@ static void pop_head(List *list){
 	    list->head->prev = NULL;
     }
 
+    list->length--;
     free(tmp);
     status_clear();
     return;
@@ -144,13 +147,15 @@ static void pop_tail(List *list){
 	} 
 
     Node *tmp = list->tail;
-	if(list->tail->prev == NULL){
+
+    if(list->tail->prev == NULL){
 		list->head = list->tail = NULL;
     } else {
 	    list->tail = list->tail->prev;
 	    list->tail->next = NULL;
 	}
 
+    list->length--;
 	free(tmp);
     status_clear();
 	return;
@@ -176,12 +181,21 @@ static void view_tail(const List *list, void *out){
     status_clear();
 }
 
+static size_t size(List *list){
+    return list->length;
+}
+
 // Removing / Clearing list and in extension stack, queue are dependent on pop_head func.
 
 static void clear(List *list) {
     while (!is_empty(list)) {
         pop_head(list);
     }
+}
+
+static void destroy(List *list){
+    clear(list);
+    free(list);
 }
 
 static List *create(size_t size) {
@@ -259,6 +273,10 @@ void (view_list_tail)(const List *list, void *out, int LINE){
     }
 }
 
+size_t size_list(List *list){
+    return size(list);
+}
+
 bool empty_list(const List *list){
     return is_empty(list);
 }
@@ -267,6 +285,9 @@ void clear_list(List *list){
     clear(list);
 }
 
+void destroy_list(List *list){
+    destroy(list);
+}
 
 struct Queue_impl {
 	List *list;
@@ -314,6 +335,10 @@ void (pop_queue)(Queue *line, int LINE){
     }
 }
 
+size_t size_queue(Queue *line){
+    return size(line->list);
+}
+
 bool empty_queue(const Queue *line){
     return is_empty(line->list);
 }
@@ -328,6 +353,11 @@ void (front_queue)(const Queue *line, void *out, int LINE){
 
 void clear_queue(Queue *line){
     clear(line->list);
+}
+
+void destroy_queue(Queue *queue){
+    destroy(queue->list);
+    free(queue);
 }
 
 struct Stack_impl {
@@ -376,6 +406,10 @@ void (pop_stack)(Stack *box, int LINE){
     }
 }
 
+size_t size_stack(Stack *box){
+    return size(box->list);
+}
+
 bool empty_stack(const Stack *box){
     return is_empty(box->list);
 }
@@ -390,4 +424,9 @@ void (top_stack)(const Stack *box, void *out, int LINE){
 
 void clear_stack(Stack *box){
     clear(box->list);
+}
+
+void destroy_stack(Stack *box){
+    destroy(box->list);
+    free(box);
 }
