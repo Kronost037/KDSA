@@ -1,5 +1,5 @@
 # KDSA
-
+(GCC/CLANGD only)
 An experimental Data Structure and Algorithms Library.
 It uses advanced debug instrumentation and error logging to help with reliable development and quick debugging.
 
